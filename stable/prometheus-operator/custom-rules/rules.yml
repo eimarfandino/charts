@@ -1,0 +1,12 @@
+# these rules synced manually from https://github.com/etcd-io/etcd/blob/master/Documentation/etcd-mixin/mixin.libsonnet
+groups: []
+# - name: custom-rule
+#   rules:
+#   - alert: PrometheusPodNotRunning
+#     annotations:
+#       description: Checks if all the pods are running correctly in a lapse of 10m
+#       summary: One or more pods are not runnign correctly
+#     expr: (sum(kube_pod_container_status_running{pod!~"mysql.*"}) by (pod))  < 1
+#     for: 10m
+#     labels:
+#       severity: warning

@@ -26,11 +26,18 @@ def change_style(style, representer):
 charts = [
     {
         'source': 'https://raw.githubusercontent.com/coreos/prometheus-operator/master/contrib/kube-prometheus/manifests/prometheus-rules.yaml',
-        'destination': '../templates/prometheus/rules'
+        'destination': '../templates/prometheus/rules',
+        'type': 'remote'
     },
     {
         'source': 'https://raw.githubusercontent.com/etcd-io/etcd/master/Documentation/op-guide/etcd3_alert.rules.yml',
-        'destination': '../templates/prometheus/rules'
+        'destination': '../templates/prometheus/rules',
+        'type': 'remote'
+    },
+    {
+        'source': '/Users/efandino/Documents/workspace/personal/kubernetes/helm-charts/community-charts/stable/prometheus-operator/custom-rules/rules.yml',
+        'destination': '../templates/prometheus/rules',
+        'type': 'local'
     },
 ]
 
@@ -214,21 +221,38 @@ def write_group_to_file(group, url, destination):
     print("Generated %s" % new_filename)
 
 
+def handle_remote(chart):
+    print("Generating rules from %s" % chart['source'])
+    response = requests.get(chart['source'])
+    if response.status_code != 200:
+        print('Skipping the file, response code %s not equals 200' % response.status_code)
+        return
+    raw_text = response.text
+    yaml_text = yaml.load(raw_text)
+    # etcd workaround, their file don't have spec level
+    groups = yaml_text['spec']['groups'] if yaml_text.get('spec') else yaml_text['groups']
+    for group in groups:
+        write_group_to_file(group, chart['source'], chart['destination'])
+
+def handle_local(chart):
+    rules = open(chart['source'],'r')
+    raw_text = rules.read()
+    yaml_text = yaml.load(raw_text)
+    # etcd workaround, their file don't have spec level
+    groups = yaml_text['spec']['groups'] if yaml_text.get('spec') else yaml_text['groups']
+    for group in groups:
+        write_group_to_file(group, chart['source'], chart['destination'])
+
 def main():
     init_yaml_styles()
     # read the rules, create a new template file per group
-    for chart in charts:
-        print("Generating rules from %s" % chart['source'])
-        response = requests.get(chart['source'])
-        if response.status_code != 200:
-            print('Skipping the file, response code %s not equals 200' % response.status_code)
-            continue
-        raw_text = response.text
-        yaml_text = yaml.load(raw_text)
-        # etcd workaround, their file don't have spec level
-        groups = yaml_text['spec']['groups'] if yaml_text.get('spec') else yaml_text['groups']
-        for group in groups:
-            write_group_to_file(group, chart['source'], chart['destination'])
+    for chart in charts:        
+        if(chart['type'] == "remote"):
+            handle_remote(chart)
+        else:
+            handle_local(chart)
+
+        
     print("Finished")
 
 
